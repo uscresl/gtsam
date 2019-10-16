@@ -2671,6 +2671,27 @@ class NavState {
   gtsam::Pose3 pose() const;
 };
 
+#include <gtsam/navigation/GPSFactor.h>
+virtual class GPSFactor : gtsam::NonlinearFactor {
+  // Constructors
+  GPSFactor();
+  GPSFactor(size_t key, const gtsam::Point3& gpsIn, const gtsam::noiseModel::Diagonal* model);
+
+  void print(string s) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
+  // gtsam::Point3 nT_() const;
+};
+
+virtual class GPSFactor2 : gtsam::NonlinearFactor {
+  // Constructors
+  GPSFactor2();
+  GPSFactor2(size_t key, const gtsam::Point3& gpsIn, const gtsam::noiseModel::Diagonal* model);
+
+  void print(string s) const;
+  bool equals(const gtsam::NonlinearFactor& expected, double tol) const;
+  // gtsam::Point3 nT_() const;
+};
+
 #include <gtsam/navigation/PreintegratedRotation.h>
 virtual class PreintegratedRotationParams {
   PreintegratedRotationParams();
