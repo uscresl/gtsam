@@ -17,7 +17,6 @@
  */
 
 #include <gtsam_unstable/geometry/Similarity3.h>
-#include <gtsam/slam/PriorFactor.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/ExpressionFactorGraph.h>
@@ -245,7 +244,7 @@ TEST(Similarity3, GroupAction) {
       &Similarity3::transformFrom, _1, _2, boost::none, boost::none);
 
   Point3 q(1, 2, 3);
-  for (const auto T : { T1, T2, T3, T4, T5, T6 }) {
+  for (const auto& T : { T1, T2, T3, T4, T5, T6 }) {
     Point3 q(1, 0, 0);
     Matrix H1 = numericalDerivative21<Point3, Similarity3, Point3>(f, T, q);
     Matrix H2 = numericalDerivative22<Point3, Similarity3, Point3>(f, T, q);
@@ -263,11 +262,10 @@ TEST(Similarity3, Optimization) {
   Similarity3 prior = Similarity3(Rot3::Ypr(0.1, 0.2, 0.3), Point3(1, 2, 3), 4);
   noiseModel::Isotropic::shared_ptr model = noiseModel::Isotropic::Sigma(7, 1);
   Symbol key('x', 1);
-  PriorFactor<Similarity3> factor(key, prior, model);
 
   // Create graph
   NonlinearFactorGraph graph;
-  graph.push_back(factor);
+  graph.addPrior(key, prior, model);
 
   // Create initial estimate with identity transform
   Values initial;
@@ -304,7 +302,6 @@ TEST(Similarity3, Optimization2) {
       (Vector(7) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 10).finished());
   SharedDiagonal betweenNoise2 = noiseModel::Diagonal::Sigmas(
       (Vector(7) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 1.0).finished());
-  PriorFactor<Similarity3> factor(X(1), prior, model); // Prior !
   BetweenFactor<Similarity3> b1(X(1), X(2), m1, betweenNoise);
   BetweenFactor<Similarity3> b2(X(2), X(3), m2, betweenNoise);
   BetweenFactor<Similarity3> b3(X(3), X(4), m3, betweenNoise);
@@ -313,7 +310,7 @@ TEST(Similarity3, Optimization2) {
 
   // Create graph
   NonlinearFactorGraph graph;
-  graph.push_back(factor);
+  graph.addPrior(X(1), prior, model); // Prior !
   graph.push_back(b1);
   graph.push_back(b2);
   graph.push_back(b3);

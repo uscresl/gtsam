@@ -60,7 +60,7 @@ public:
   /// @{
 
   /// print with optional string
-  virtual void print(const std::string& s = "") const ;
+  void print(const std::string& s = "") const override;
 
   /// assert equality up to a tolerance
   bool equals(const Cal3DS2& K, double tol = 10e-9) const;
@@ -76,17 +76,17 @@ public:
   Vector localCoordinates(const Cal3DS2& T2) const ;
 
   /// Return dimensions of calibration manifold object
-  virtual size_t dim() const { return 9 ; } //TODO: make a final dimension variable (also, usually size_t in other classes e.g. Pose2)
+  virtual size_t dim() const { return dimension ; }
 
   /// Return dimensions of calibration manifold object
-  static size_t Dim() { return 9; }  //TODO: make a final dimension variable
+  static size_t Dim() { return dimension; }
 
   /// @}
   /// @name Clone
   /// @{
 
   /// @return a deep copy of this object
-  virtual boost::shared_ptr<Base> clone() const {
+  boost::shared_ptr<Base> clone() const override {
     return boost::shared_ptr<Base>(new Cal3DS2(*this));
   }
 

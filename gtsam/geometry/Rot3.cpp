@@ -16,13 +16,15 @@
  * @author  Christian Potthast
  * @author  Frank Dellaert
  * @author  Richard Roberts
+ * @author  Varun Agrawal
  */
 
 #include <gtsam/geometry/Rot3.h>
 #include <gtsam/geometry/SO3.h>
 #include <boost/math/constants/constants.hpp>
-#include <boost/random.hpp>
+
 #include <cmath>
+#include <random>
 
 using namespace std;
 
@@ -30,14 +32,14 @@ namespace gtsam {
 
 /* ************************************************************************* */
 void Rot3::print(const std::string& s) const {
-  gtsam::print((Matrix)matrix(), s);
+  cout << (s.empty() ? "R: " : s + " ");
+  gtsam::print(static_cast<Matrix>(matrix()));
 }
 
 /* ************************************************************************* */
-Rot3 Rot3::Random(boost::mt19937& rng) {
-  // TODO allow any engine without including all of boost :-(
+Rot3 Rot3::Random(std::mt19937& rng) {
   Unit3 axis = Unit3::Random(rng);
-  boost::uniform_real<double> randomAngle(-M_PI, M_PI);
+  uniform_real_distribution<double> randomAngle(-M_PI, M_PI);
   double angle = randomAngle(rng);
   return AxisAngle(axis, angle);
 }
@@ -185,6 +187,12 @@ Vector Rot3::quaternion() const {
 }
 
 /* ************************************************************************* */
+pair<Unit3, double> Rot3::axisAngle() const {
+  const Vector3 omega = Rot3::Logmap(*this);
+  return std::pair<Unit3, double>(Unit3(omega), omega.norm());
+}
+
+/* ************************************************************************* */
 Matrix3 Rot3::ExpmapDerivative(const Vector3& x) {
   return SO3::ExpmapDerivative(x);
 }
@@ -215,10 +223,7 @@ pair<Matrix3, Vector3> RQ(const Matrix3& A) {
 
 /* ************************************************************************* */
 ostream &operator<<(ostream &os, const Rot3& R) {
-  os << "\n";
-  os << '|' << R.r1().x() << ", " << R.r2().x() << ", " << R.r3().x() << "|\n";
-  os << '|' << R.r1().y() << ", " << R.r2().y() << ", " << R.r3().y() << "|\n";
-  os << '|' << R.r1().z() << ", " << R.r2().z() << ", " << R.r3().z() << "|\n";
+  os << R.matrix().format(matlabFormat());
   return os;
 }
 
