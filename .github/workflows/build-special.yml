@@ -1,6 +1,6 @@
-name: Linux CI
+name: Special Cases CI
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -11,40 +11,46 @@ jobs:
       CTEST_OUTPUT_ON_FAILURE: ON
       CTEST_PARALLEL_LEVEL: 2
       CMAKE_BUILD_TYPE: ${{ matrix.build_type }}
-      GTSAM_BUILD_UNSTABLE: ${{ matrix.build_unstable }}
+      GTSAM_BUILD_UNSTABLE: ON
 
     strategy:
       fail-fast: false
+
       matrix:
         # Github Actions requires a single row to be added to the build matrix.
         # See https://help.github.com/en/articles/workflow-syntax-for-github-actions.
-        name: [
-          ubuntu-18.04-gcc-5,
-          ubuntu-18.04-gcc-9,
-          ubuntu-18.04-clang-9,
-        ]
+        name:
+          [
+            ubuntu-gcc-deprecated,
+            ubuntu-gcc-quaternions,
+            ubuntu-gcc-tbb,
+          ]
 
         build_type: [Debug, Release]
-        build_unstable: [ON]
+
         include:
-          - name: ubuntu-18.04-gcc-5
-            os: ubuntu-18.04
-            compiler: gcc
-            version: "5"
-
-          - name: ubuntu-18.04-gcc-9
+          - name: ubuntu-gcc-deprecated
             os: ubuntu-18.04
             compiler: gcc
             version: "9"
+            flag: deprecated
 
-          - name: ubuntu-18.04-clang-9
+          - name: ubuntu-gcc-quaternions
             os: ubuntu-18.04
-            compiler: clang
+            compiler: gcc
             version: "9"
+            flag: quaternions
+
+          - name: ubuntu-gcc-tbb
+            os: ubuntu-18.04
+            compiler: gcc
+            version: "9"
+            flag: tbb
 
     steps:
       - name: Checkout
         uses: actions/checkout@master
+
       - name: Install (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -55,10 +61,10 @@ jobs:
           sudo apt-get -y update
 
           sudo apt install cmake build-essential pkg-config libpython-dev python-numpy
-          
+
           echo "::set-env name=BOOST_ROOT::$(echo $BOOST_ROOT_1_69_0)"
           echo "::set-env name=LD_LIBRARY_PATH::$(echo $BOOST_ROOT_1_69_0/lib)"
-          
+
           if [ "${{ matrix.compiler }}" = "gcc" ]; then
             sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
             echo "::set-env name=CC::gcc-${{ matrix.version }}"
@@ -68,11 +74,39 @@ jobs:
             echo "::set-env name=CC::clang-${{ matrix.version }}"
             echo "::set-env name=CXX::clang++-${{ matrix.version }}"
           fi
-      - name: Check Boost version
-        if: runner.os == 'Linux'
+
+      - name: Install (macOS)
+        if: runner.os == 'macOS'
         run: |
-          echo "BOOST_ROOT = $BOOST_ROOT"
-      - name: Build and Test (Linux)
-        if: runner.os == 'Linux'
+          brew install cmake ninja boost
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            brew install gcc@${{ matrix.version }}
+            echo "::set-env name=CC::gcc-${{ matrix.version }}"
+            echo "::set-env name=CXX::g++-${{ matrix.version }}"
+          else
+            sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+            echo "::set-env name=CC::clang"
+            echo "::set-env name=CXX::clang++"
+            fi
+
+      - name: Set Allow Deprecated Flag
+        if: matrix.flag == 'deprecated'
+        run: |
+          echo "::set-env name=GTSAM_ALLOW_DEPRECATED_SINCE_V41::ON"
+          echo "Allow deprecated since version 4.1"
+
+      - name: Set Use Quaternions Flag
+        if: matrix.flag == 'quaternions'
+        run: |
+          echo "::set-env name=GTSAM_USE_QUATERNIONS::ON"
+          echo "Use Quaternions for rotations"
+
+      - name: Set GTSAM_WITH_TBB Flag
+        if: matrix.flag == 'tbb'
+        run: |
+          echo "::set-env name=GTSAM_WITH_TBB::ON"
+          echo "GTSAM Uses TBB"
+
+      - name: Build & Test
         run: |
           bash .github/scripts/unix.sh -t
